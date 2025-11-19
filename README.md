@@ -1,46 +1,43 @@
-COMPLETE JENKINS CI/CD GUIDE (AWS EC2 + Ubuntu + GitHub + Apache)
+Jenkins CI/CD Pipeline — AWS EC2 (Ubuntu) + GitHub Webhooks + Apache Web Server
 
-Includes: Commands, configuration, explanations → Everything you need.
+This guide walks you through setting up a complete CI/CD pipeline using:
+
+AWS EC2 (Ubuntu)
+
+Jenkins
+
+GitHub + Webhooks
+
+Apache Web Server
+
+Publish Over SSH Plugin
 
 ✅ 1) Launch EC2 Instance
-1.1 Create Instance
+1.1 Create EC2 Instance
 
-Go to AWS EC2 → Launch Instance
-
-Name: jenkins-cicd-server
+AWS Console → EC2 → Launch Instance
 
 AMI: Ubuntu 22.04
 
-Instance type: t2.micro
+Instance Type: t2.micro
 
-Key pair: Create or use existing
+Key Pair: Create or select existing
 
-Security Group (VERY IMPORTANT):
+Security Group:
 
-22 → SSH
+22 (SSH)
 
-8080 → Jenkins
+8080 (Jenkins)
 
-80 → Apache Web Server
+80 (Apache)
 
-Source: Anywhere (for testing)
+Launch
 
 1.2 Connect to EC2
 ssh -i your-key.pem ubuntu@EC2_PUBLIC_IP
 
 ✅ 2) Install Dependencies on EC2
-
-We install:
-
-Java
-
-Jenkins
-
-Apache
-
-Git
-
-2.1 Update server
+2.1 Update System
 sudo apt update && sudo apt upgrade -y
 
 2.2 Install Java
@@ -67,47 +64,48 @@ sudo systemctl enable apache2
 sudo systemctl start apache2
 
 ✅ 3) Configure Jenkins
-3.1 Open Jenkins
+3.1 Access Jenkins
 
 Visit:
 
 http://EC2_PUBLIC_IP:8080
 
-3.2 Get initial admin password
+3.2 Retrieve Jenkins Admin Password
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 
-3.3 Complete setup
+3.3 Initial Setup
 
 Install Suggested Plugins
 
-Create admin user
+Create Admin User
 
 ✅ 4) Setup Web Directory for Deployment
 
-We will deploy website files to:
+Jenkins will deploy files into:
 
 /var/www/html
 
+
 Give Jenkins permission:
+
 sudo chown -R jenkins:jenkins /var/www/html
 sudo chmod -R 755 /var/www/html
 
 ✅ 5) Install Jenkins Plugin (Publish Over SSH)
+5.1 Install Plugin
+
 In Jenkins UI:
 
-Go to: Manage Jenkins → Plugins → Available
+Manage Jenkins → Plugins → Available
+Search: Publish Over SSH → Install
 
-Search: Publish Over SSH
+5.2 Configure SSH
 
-Install + restart Jenkins
+Go to:
 
-Configure SSH (allows Jenkins to copy files)
+Manage Jenkins → Configure System → Publish Over SSH
 
-In Jenkins:
-
-Manage Jenkins → Configure System → Publish over SSH
-
-Add a new SSH Server:
+Add:
 
 Name: EC2
 
@@ -117,16 +115,16 @@ Username: jenkins
 
 Remote Directory: /var/www/html
 
-Click Test → should pass.
+Click Test → Should succeed.
 
 ✅ 6) Create a GitHub Repo with HTML Page
-6.1 Create GitHub repository
+6.1 Create Repository
 
-Name: my-website
+Create GitHub repo: my-website
 
-6.2 Create HTML file
+6.2 Add HTML File
 
-index.html:
+Create index.html:
 
 <!DOCTYPE html>
 <html>
@@ -139,9 +137,6 @@ index.html:
 </html>
 
 6.3 Push to GitHub
-
-Commands:
-
 git init
 git add .
 git commit -m "Initial commit"
@@ -149,60 +144,53 @@ git branch -M main
 git remote add origin https://github.com/YOUR_USER/my-website.git
 git push -u origin main
 
-✅ 7) Create Jenkins Job (Using Publish Over SSH)
+✅ 7) Create Jenkins Job
 7.1 Create Freestyle Job
 
-Jenkins Dashboard → New Item
+Jenkins → New Item
 
 Name: deploy-my-website
 
-Select: Freestyle project
+Type: Freestyle project
 
-7.2 Source Code Management
-
-Select Git
+7.2 Source Code (Git)
 
 Repository URL:
 https://github.com/YOUR_USER/my-website.git
 
 Branch: main
 
-7.3 Build Step (Deploy)
+7.3 Add Build Step (Deploy via SSH)
 
 Add:
 Send files or execute commands over SSH
 
-Configure:
+Settings:
 
-SSH Server: select EC2
+Server: EC2
 
 Source files:
 
 *
 
 
-Remove prefix: (leave blank)
-
 Remote directory:
 
 /var/www/html
 
-7.4 Execute Command After Transfer
-
-In the same section → "Exec command":
-
+7.4 Add Post-Transfer Command
 sudo systemctl restart apache2
 
 
-Click Save
+Save the job.
 
 ✅ 8) Configure GitHub Webhook
 
-In GitHub:
+Go to:
 
-Repo → Settings → Webhooks → Add Webhook
+GitHub Repo → Settings → Webhooks → Add Webhook
 
-Use:
+Webhook URL:
 
 http://EC2_PUBLIC_IP:8080/github-webhook/
 
@@ -211,19 +199,17 @@ Content type: application/json
 
 Event: Just the push event
 
-Click Add Webhook
-
-Webhook should show ✓ green if successful.
+Save → Should show a green ✓
 
 ✅ 9) Fix Apache to Show Your Site
 
-Make sure Apache serves /var/www/html
+Ensure Apache points to the correct directory:
 
-Check Apache site config
+Check Virtual Host
 sudo nano /etc/apache2/sites-available/000-default.conf
 
 
-Ensure:
+Must include:
 
 DocumentRoot /var/www/html
 
@@ -232,35 +218,40 @@ Restart Apache:
 
 sudo systemctl restart apache2
 
-Open your site:
+
+Check:
+
 http://EC2_PUBLIC_IP/
 
 ✅ 10) Test the Pipeline
-Step 1: Make a change
+10.1 Update HTML File
 
 Modify index.html:
 
-<h1>New site deployed by Jenkins!</h1>
+<h1>Updated via Jenkins Pipeline!</h1>
 
-Step 2: Push code
+10.2 Push to GitHub
 git add .
-git commit -m "updated website"
+git commit -m "Update website"
 git push
 
-Step 3: GitHub webhook triggers Jenkins
+10.3 Pipeline Execution
 
-Jenkins:
+GitHub Webhook → Jenkins builds → Deploys to Apache
 
-pulls repo
+10.4 View Result
 
-transfers files via SSH
+Open:
 
-restarts Apache
-
-site updates automatically
-
-Step 4: View updated website
 http://EC2_PUBLIC_IP/
 
 
-🎉 Your CI/CD pipeline works!
+You should now see your updated website.
+
+🎉 Pipeline Complete!
+
+You now have:
+
+✔ Automated GitHub → Jenkins → Apache deployment
+✔ GitHub Webhooks triggering CI/CD
+✔ Full control to expand into advanced pipeline
