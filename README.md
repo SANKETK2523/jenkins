@@ -1,3 +1,4 @@
+give me guide to jenkins CI/CD WITH AWS EC2 and github using aws ec2(ubuntu),jenkins,github webhooks,apache web server in following steps and a beginner friendly guide :-1) Launch EC2 Instance,2) Install Dependencies on EC2, 3) Configure Jenkins, 4) Setup Web Directory for Deployment, 5) Install Jenkins Plugin (Publish Over SSH),6) Create a GitHub Repo with HTML Page,7) Create Jenkins Job,8) Configure GitHub Webhook, 9) Fix Apache to Show Your Site,10) Test the Pipeline give commands correctly and explain
 Step 1: Launch EC2 Instance
 
 Log in to your AWS Console → EC2 → Launch Instance.
