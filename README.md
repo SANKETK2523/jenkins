@@ -1,17 +1,3 @@
-Jenkins CI/CD Pipeline — AWS EC2 (Ubuntu) + GitHub Webhooks + Apache Web Server
-
-This guide walks you through setting up a complete CI/CD pipeline using:
-
-AWS EC2 (Ubuntu)
-
-Jenkins
-
-GitHub + Webhooks
-
-Apache Web Server
-
-Publish Over SSH Plugin
-
 ✅ 1) Launch EC2 Instance
 1.1 Create EC2 Instance
 
@@ -33,13 +19,12 @@ Security Group:
 
 Launch
 
-1.2 Connect to EC2
+1.2 Connect to EC2 
 ssh -i your-key.pem ubuntu@EC2_PUBLIC_IP
 
 ✅ 2) Install Dependencies on EC2
 2.1 Update System
 sudo apt update && sudo apt upgrade -y
-
 2.2 Install Java
 sudo apt install openjdk-17-jdk -y
 
@@ -59,6 +44,7 @@ sudo systemctl enable jenkins
 sudo systemctl start jenkins
 
 2.5 Install Apache Web Server
+
 sudo apt install apache2 -y
 sudo systemctl enable apache2
 sudo systemctl start apache2
@@ -66,12 +52,11 @@ sudo systemctl start apache2
 ✅ 3) Configure Jenkins
 3.1 Access Jenkins
 
-Visit:
+Visit:http://EC2_PUBLIC_IP:8080
 
-http://EC2_PUBLIC_IP:8080
-
-3.2 Retrieve Jenkins Admin Password
+Retrieve Jenkins Admin Password
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
 
 3.3 Initial Setup
 
@@ -244,14 +229,3 @@ GitHub Webhook → Jenkins builds → Deploys to Apache
 Open:
 
 http://EC2_PUBLIC_IP/
-
-
-You should now see your updated website.
-
-🎉 Pipeline Complete!
-
-You now have:
-
-✔ Automated GitHub → Jenkins → Apache deployment
-✔ GitHub Webhooks triggering CI/CD
-✔ Full control to expand into advanced pipeline
