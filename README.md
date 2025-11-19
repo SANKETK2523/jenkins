@@ -1,37 +1,57 @@
-# ======================================================
-# Jenkins CI/CD Setup on AWS EC2 (Ubuntu) with GitHub
-# ======================================================
+Step 1: Launch EC2 Instance
 
-# -----------------------------
-# Step 1: Launch EC2 Instance
-# -----------------------------
-# (Manual step in AWS Console)
-# - Ubuntu Server 22.04 LTS
-# - Security Group: SSH(22), HTTP(80), Jenkins(8080)
-# - Download .pem key
-# Connect via SSH:
-# chmod 400 mykey.pem
-# ssh -i mykey.pem ubuntu@<EC2_PUBLIC_IP>
+Log in to your AWS Console → EC2 → Launch Instance.
 
-# -----------------------------
-# Step 2: Update & Install Dependencies
-# -----------------------------
+Choose Ubuntu Server 22.04 LTS.
+
+Instance Type: t2.micro (free tier if applicable).
+
+Configure security group to allow:
+
+SSH: 22
+
+HTTP: 80
+
+Jenkins: 8080
+
+Launch instance and download your .pem key file.
+
+Connect via SSH:
+
+chmod 400 mykey.pem
+ssh -i mykey.pem ubuntu@<EC2_PUBLIC_IP>
+
+
+Replace <EC2_PUBLIC_IP> with your instance’s public IP.
+
+Step 2: Install Dependencies on EC2
+
+Update packages:
+
 sudo apt update && sudo apt upgrade -y
 
-# Install Java (required for Jenkins)
+
+Install Java (required for Jenkins):
+
 sudo apt install openjdk-11-jdk -y
 java -version
 
-# Install Apache web server
+
+Install Apache web server:
+
 sudo apt install apache2 -y
 sudo systemctl enable apache2
 sudo systemctl start apache2
 
-# Install Git
+
+Install Git:
+
 sudo apt install git -y
 git --version
 
-# Install Jenkins
+
+Install Jenkins:
+
 wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
 sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
 sudo apt update
@@ -40,38 +60,59 @@ sudo systemctl enable jenkins
 sudo systemctl start jenkins
 sudo systemctl status jenkins
 
-# Access Jenkins via: http://<EC2_PUBLIC_IP>:8080
-# Get initial admin password:
-# sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 
-# -----------------------------
-# Step 3: Configure Jenkins
-# -----------------------------
-# (Manual step in browser)
-# - Complete setup wizard
-# - Install suggested plugins
-# - Create admin user
+Access Jenkins: http://<EC2_PUBLIC_IP>:8080
 
-# -----------------------------
-# Step 4: Setup Web Directory
-# -----------------------------
+Unlock Jenkins using:
+
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+Step 3: Configure Jenkins
+
+Complete setup wizard.
+
+Install suggested plugins.
+
+Create an admin user.
+
+Jenkins is ready to create jobs.
+
+Step 4: Setup Web Directory for Deployment
+
+Apache default root: /var/www/html
+
+Make a folder for your app (optional):
+
 sudo mkdir -p /var/www/html/myapp
 sudo chown -R ubuntu:ubuntu /var/www/html/myapp
 
-# -----------------------------
-# Step 5: Jenkins Plugin (Publish Over SSH)
-# -----------------------------
-# (Manual step in Jenkins Dashboard)
-# - Manage Jenkins → Manage Plugins → Install "Publish Over SSH"
-# - Configure: Hostname=<EC2_PUBLIC_IP>, Username=ubuntu, Remote Directory=/var/www/html/myapp
-# - Use private key (your .pem file or Jenkins key)
 
-# -----------------------------
-# Step 6: Create GitHub Repo & HTML
-# -----------------------------
-# (Manual: Create repo "myapp")
-# Add HTML file:
-cat <<EOF > index.html
+This ensures Jenkins (running as ubuntu or jenkins) can write files to this directory.
+
+Step 5: Install Jenkins Plugin (Publish Over SSH)
+
+Go to Jenkins Dashboard → Manage Jenkins → Manage Plugins → Available.
+
+Search for "Publish Over SSH" and install.
+
+Configure in Manage Jenkins → Configure System → Publish over SSH:
+
+Name: EC2
+
+Hostname: <EC2_PUBLIC_IP>
+
+Username: ubuntu
+
+Remote Directory: /var/www/html/myapp
+
+Use private key (your .pem file or generate Jenkins SSH key)
+
+Step 6: Create a GitHub Repo with HTML Page
+
+Go to GitHub → New Repository → myapp.
+
+Create an index.html file:
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -81,9 +122,10 @@ cat <<EOF > index.html
     <h1>Hello from Jenkins CI/CD!</h1>
 </body>
 </html>
-EOF
 
-# Initialize git and push to GitHub
+
+Push to GitHub:
+
 git init
 git add index.html
 git commit -m "Initial commit"
@@ -91,39 +133,64 @@ git branch -M main
 git remote add origin <GITHUB_REPO_URL>
 git push -u origin main
 
-# -----------------------------
-# Step 7: Create Jenkins Job
-# -----------------------------
-# (Manual in Jenkins)
-# - New Item → Freestyle Project → "Deploy-MyApp"
-# - Source Code Management → Git URL
-# - Build Trigger → GitHub hook trigger
-# - Build → Execute Shell:
+Step 7: Create Jenkins Job
+
+Dashboard → New Item → Freestyle Project → Deploy-MyApp.
+
+Source Code Management → Git → Repository URL.
+
+Build Triggers → GitHub hook trigger for GITScm polling.
+
+Build → Execute Shell:
+
 echo "Deploying to Apache web server..."
 cp -r * /var/www/html/myapp/
 
-# -----------------------------
-# Step 8: Configure GitHub Webhook
-# -----------------------------
-# (Manual in GitHub Settings)
-# - Settings → Webhooks → Add webhook
-# - Payload URL: http://<EC2_PUBLIC_IP>:8080/github-webhook/
-# - Content type: application/json
-# - Event: push
 
-# -----------------------------
-# Step 9: Configure Apache
-# -----------------------------
-sudo sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/myapp|g' /etc/apache2/sites-available/000-default.conf
+(or use Publish over SSH if deploying remotely)
+
+Step 8: Configure GitHub Webhook
+
+Go to your GitHub repo → Settings → Webhooks → Add webhook.
+
+Payload URL: http://<EC2_PUBLIC_IP>:8080/github-webhook/
+
+Content type: application/json
+
+Events: Just the push event.
+
+Save webhook.
+
+Now, each push triggers Jenkins to deploy automatically.
+
+Step 9: Fix Apache to Show Your Site
+
+Make sure Apache points to your directory:
+
+sudo nano /etc/apache2/sites-available/000-default.conf
+
+
+Set:
+
+DocumentRoot /var/www/html/myapp
+
+
+Restart Apache:
+
 sudo systemctl restart apache2
 
-# -----------------------------
-# Step 10: Test the Pipeline
-# -----------------------------
-# Make a change to trigger Jenkins:
+Step 10: Test the Pipeline
+
+Push a change to GitHub:
+
 echo "<p>Updated via Jenkins</p>" >> index.html
 git add index.html
 git commit -m "Update page"
 git push origin main
 
-# Visit http://<EC2_PUBLIC_IP>/ to see the deployed page
+
+Jenkins should trigger the job automatically.
+
+Visit http://<EC2_PUBLIC_IP>/ → You should see the updated page.
+
+✅ Congratulations! You now have a simple CI/CD pipeline with:
