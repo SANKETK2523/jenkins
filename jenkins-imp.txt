@@ -1,8 +1,0 @@
-Step 10: Test the Pipeline
-
-Push a change to GitHub:
-
-echo "<p>Updated via Jenkins</p>" >> index.html
-git add index.html
-git commit -m "Update page"
-git push origin main
